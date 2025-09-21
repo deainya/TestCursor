@@ -52,6 +52,12 @@ st.markdown("""
         padding: 1rem;
         border-radius: 10px;
         margin: 1rem 0;
+        color: #212529;
+    }
+    
+    .problem-summary strong {
+        color: #495057;
+        font-weight: 600;
     }
     
     @media (max-width: 768px) {
@@ -162,7 +168,9 @@ def display_problem_summary(problem_data):
         summary_data.append(f"**Фото:** {problem_data['photo_url']}")
     
     if summary_data:
-        st.markdown('<div class="problem-summary">' + '<br>'.join(summary_data) + '</div>', unsafe_allow_html=True)
+        # Используем st.markdown с markdown разметкой вместо HTML
+        summary_text = '\n\n'.join(summary_data)
+        st.markdown(f'<div class="problem-summary">{summary_text}</div>', unsafe_allow_html=True)
     else:
         st.info("Информация о проблеме еще не собрана")
 
@@ -246,6 +254,8 @@ def main():
                             "is_user": False
                         })
                 
+                # Очищаем поле ввода
+                st.session_state.user_input = ""
                 st.rerun()
 
         # Загрузка изображений
