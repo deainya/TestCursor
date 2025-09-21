@@ -213,9 +213,41 @@ def main():
         for message in st.session_state.chat_history:
             display_chat_message(message['content'], message['is_user'])
         
-        # Отображение сводки по проблеме
-        display_problem_summary(st.session_state.problem_data)
-        
+        # Форма ввода сообщения
+        if not st.session_state.show_summary:
+            user_input = st.text_input("Введите ваше сообщение:", placeholder="Опишите проблему...", key="user_input")
+            
+            if st.button("Отправить", type="primary") and user_input:
+                # Добавляем сообщение пользователя в историю
+                st.session_state.chat_history.append({
+                    "content": user_input,
+                    "is_user": True
+                })
+                
+                # Отправляем в n8n
+                with st.spinner("Обработка запроса..."):
+                    response = send_to_n8n(
+                        user_input,
+                        st.session_state.chat_history,
+                        st.session_state.problem_data
+                    )
+                
+                if "error" in response:
+                    st.error(f"Ошибка: {response['error']}")
+                else:
+                    # Обновляем данные проблемы
+                    if 'problem_data' in response:
+                        st.session_state.problem_data.update(response['problem_data'])
+                    
+                    # Добавляем ответ ассистента
+                    if 'response' in response:
+                        st.session_state.chat_history.append({
+                            "content": response['response'],
+                            "is_user": False
+                        })
+                
+                st.rerun()
+
         # Загрузка изображений
         st.markdown("### 📸 Загрузка изображений")
         
@@ -280,6 +312,9 @@ def main():
                             st.session_state.problem_data["photo_url"] = ""
                         st.rerun()
         
+        # Отображение сводки по проблеме
+        display_problem_summary(st.session_state.problem_data)
+        
         # Проверка на готовность к отправке
         required_fields = ['equipment_type', 'device_number', 'description', 'incident_date']
         missing_fields = [field for field in required_fields if not st.session_state.problem_data.get(field)]
@@ -287,42 +322,7 @@ def main():
         if not missing_fields and not st.session_state.show_summary:
             st.session_state.show_summary = True
             st.rerun()
-        
-        # Форма ввода сообщения
-        if not st.session_state.show_summary:
-            user_input = st.text_input("Введите ваше сообщение:", placeholder="Опишите проблему...", key="user_input")
-            
-            if st.button("Отправить", type="primary") and user_input:
-                # Добавляем сообщение пользователя в историю
-                st.session_state.chat_history.append({
-                    "content": user_input,
-                    "is_user": True
-                })
                 
-                # Отправляем в n8n
-                with st.spinner("Обработка запроса..."):
-                    response = send_to_n8n(
-                        user_input,
-                        st.session_state.chat_history,
-                        st.session_state.problem_data
-                    )
-                
-                if "error" in response:
-                    st.error(f"Ошибка: {response['error']}")
-                else:
-                    # Обновляем данные проблемы
-                    if 'problem_data' in response:
-                        st.session_state.problem_data.update(response['problem_data'])
-                    
-                    # Добавляем ответ ассистента
-                    if 'response' in response:
-                        st.session_state.chat_history.append({
-                            "content": response['response'],
-                            "is_user": False
-                        })
-                
-                st.rerun()
-        
         # Отображение итогового запроса и подтверждение
         if st.session_state.show_summary:
             st.markdown("### ✅ Итоговый запрос на обслуживание")
