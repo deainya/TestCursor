@@ -165,7 +165,12 @@ def display_problem_summary(problem_data):
     if problem_data.get('incident_date'):
         summary_data.append(f"**Дата инцидента:** {problem_data['incident_date']}")
     if problem_data.get('photo_url'):
-        summary_data.append(f"**Фото:** {problem_data['photo_url']}")
+        photo_urls = problem_data['photo_url'].split(', ')
+        if len(photo_urls) == 1:
+            summary_data.append(f"**Фото:** [{photo_urls[0]}]({photo_urls[0]})")
+        else:
+            photo_links = [f"[Фото {i+1}]({url})" for i, url in enumerate(photo_urls)]
+            summary_data.append(f"**Фото:** {', '.join(photo_links)}")
     
     if summary_data:
         # Используем st.markdown с markdown разметкой вместо HTML
@@ -297,6 +302,11 @@ def main():
                         
                         st.success(f"✅ Изображение успешно загружено!")
                         st.info(f"🔗 URL: {result['url']}")
+                        
+                        # Показываем обновленное поле photo_url
+                        if st.session_state.problem_data.get("photo_url"):
+                            st.success(f"📸 Фото добавлено в заявку: {st.session_state.problem_data['photo_url']}")
+                        
                         st.rerun()
                     else:
                         st.error(f"❌ Ошибка загрузки: {result['error']}")
