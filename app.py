@@ -48,16 +48,31 @@ st.markdown("""
     }
     
     .problem-summary {
-        background-color: #e9ecef;
-        padding: 1rem;
-        border-radius: 10px;
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 12px;
         margin: 1rem 0;
         color: #212529;
+        border-left: 4px solid #007bff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        line-height: 1.6;
     }
     
     .problem-summary strong {
         color: #495057;
         font-weight: 600;
+        display: inline-block;
+        min-width: 140px;
+    }
+    
+    .problem-summary a {
+        color: #007bff;
+        text-decoration: none;
+        word-break: break-all;
+    }
+    
+    .problem-summary a:hover {
+        text-decoration: underline;
     }
     
     @media (max-width: 768px) {
@@ -165,17 +180,12 @@ def display_problem_summary(problem_data):
     if problem_data.get('incident_date'):
         summary_data.append(f"**Дата инцидента:** {problem_data['incident_date']}")
     if problem_data.get('photo_url'):
-        photo_urls = problem_data['photo_url'].split(', ')
-        if len(photo_urls) == 1:
-            summary_data.append(f"**Фото:** [{photo_urls[0]}]({photo_urls[0]})")
-        else:
-            photo_links = [f"[Фото {i+1}]({url})" for i, url in enumerate(photo_urls)]
-            summary_data.append(f"**Фото:** {', '.join(photo_links)}")
+        summary_data.append(f"**Фото:** [{problem_data['photo_url']}]({problem_data['photo_url']})")
     
     if summary_data:
-        # Используем обычный st.markdown для корректного отображения markdown
-        for item in summary_data:
-            st.markdown(f'<div class="problem-summary">{item}</div>', unsafe_allow_html=True)
+        # Объединяем все данные в один блок
+        summary_text = '\n\n'.join(summary_data)
+        st.markdown(f'<div class="problem-summary">{summary_text}</div>', unsafe_allow_html=True)
     else:
         st.info("Информация о проблеме еще не собрана")
 
@@ -296,9 +306,7 @@ def main():
                         st.session_state.uploaded_photos.append(photo_info)
                         
                         # Обновляем problem_data с URL фото
-                        if st.session_state.uploaded_photos:
-                            photo_urls = [photo["url"] for photo in st.session_state.uploaded_photos]
-                            st.session_state.problem_data["photo_url"] = ", ".join(photo_urls)
+                        st.session_state.problem_data["photo_url"] = result["url"]
                         
                         st.success(f"✅ Изображение успешно загружено!")
                         st.info(f"🔗 URL: {result['url']}")
@@ -327,12 +335,8 @@ def main():
                 with col3:
                     if st.button("🗑️", key=f"delete_{i}", help="Удалить изображение"):
                         st.session_state.uploaded_photos.pop(i)
-                        # Обновляем problem_data
-                        if st.session_state.uploaded_photos:
-                            photo_urls = [photo["url"] for photo in st.session_state.uploaded_photos]
-                            st.session_state.problem_data["photo_url"] = ", ".join(photo_urls)
-                        else:
-                            st.session_state.problem_data["photo_url"] = ""
+                        # Очищаем photo_url
+                        st.session_state.problem_data["photo_url"] = ""
                         st.rerun()
         
         # Проверка на готовность к отправке
