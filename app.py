@@ -171,6 +171,7 @@ def display_problem_summary(problem_data):
     st.markdown("### 📋 Сводка по проблеме:")
     
     summary_data = []
+    summary_data.append(f" ")
     if problem_data.get('equipment_type'):
         summary_data.append(f"**Тип оборудования:** {problem_data['equipment_type']}")
     if problem_data.get('device_number'):
