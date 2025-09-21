@@ -181,7 +181,7 @@ def display_problem_summary(problem_data):
     if problem_data.get('incident_date'):
         summary_data.append(f"**Дата инцидента:** {problem_data['incident_date']}")
     if problem_data.get('photo_url'):
-        summary_data.append(f"**Фото:** [{problem_data['photo_url']}]({problem_data['photo_url']})")
+        summary_data.append(f"**Фото:** {problem_data['photo_url']}")
     
     if summary_data:
         # Объединяем все данные в один блок
@@ -202,8 +202,8 @@ def main():
         st.session_state.problem_data = {}
     if 'show_summary' not in st.session_state:
         st.session_state.show_summary = False
-    if 'uploaded_photos' not in st.session_state:
-        st.session_state.uploaded_photos = []
+    if 'uploaded_photo' not in st.session_state:
+        st.session_state.uploaded_photo = None
     if 'message_counter' not in st.session_state:
         st.session_state.message_counter = 0
     
@@ -229,7 +229,7 @@ def main():
                 st.session_state.chat_history = []
                 st.session_state.problem_data = {}
                 st.session_state.show_summary = False
-                st.session_state.uploaded_photos = []
+                st.session_state.uploaded_photo = None
                 st.session_state.message_counter = 0
                 st.rerun()
         
@@ -297,48 +297,41 @@ def main():
                         result = upload_to_imgbb(uploaded_file, imgbb_api_key)
                     
                     if result["success"]:
-                        # Сохраняем URL в состоянии
-                        photo_info = {
+                        # Сохраняем фото в состоянии
+                        st.session_state.uploaded_photo = {
                             "url": result["url"],
                             "delete_url": result["delete_url"],
                             "filename": uploaded_file.name,
                             "upload_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         }
-                        st.session_state.uploaded_photos.append(photo_info)
                         
                         # Обновляем problem_data с URL фото
                         st.session_state.problem_data["photo_url"] = result["url"]
                         
                         st.success(f"✅ Изображение успешно загружено!")
                         st.info(f"🔗 URL: {result['url']}")
-                        
-                        # Показываем обновленное поле photo_url
-                        if st.session_state.problem_data.get("photo_url"):
-                            st.success(f"📸 Фото добавлено в заявку: {st.session_state.problem_data['photo_url']}")
-                        
                         st.rerun()
                     else:
                         st.error(f"❌ Ошибка загрузки: {result['error']}")
         else:
             st.warning("⚠️ IMGBB_API_KEY не настроен. Загрузка изображений недоступна.")
         
-        # Отображение загруженных фото
-        if st.session_state.uploaded_photos:
-            st.markdown("#### 📷 Загруженные изображения:")
-            for i, photo in enumerate(st.session_state.uploaded_photos):
-                col1, col2, col3 = st.columns([3, 1, 1])
-                with col1:
-                    st.write(f"**{photo['filename']}**")
-                    st.write(f"🕒 {photo['upload_time']}")
-                    st.write(f"🔗 [Открыть изображение]({photo['url']})")
-                with col2:
-                    st.image(photo['url'], width=100)
-                with col3:
-                    if st.button("🗑️", key=f"delete_{i}", help="Удалить изображение"):
-                        st.session_state.uploaded_photos.pop(i)
-                        # Очищаем photo_url
-                        st.session_state.problem_data["photo_url"] = ""
-                        st.rerun()
+        # Отображение загруженного фото
+        if st.session_state.uploaded_photo:
+            st.markdown("#### 📷 Загруженное изображение:")
+            col1, col2, col3 = st.columns([3, 1, 1])
+            with col1:
+                st.write(f"**{st.session_state.uploaded_photo['filename']}**")
+                st.write(f"🕒 {st.session_state.uploaded_photo['upload_time']}")
+                st.write(f"🔗 [Открыть изображение]({st.session_state.uploaded_photo['url']})")
+            with col2:
+                st.image(st.session_state.uploaded_photo['url'], width=100)
+            with col3:
+                if st.button("🗑️", key="delete_photo", help="Удалить изображение"):
+                    st.session_state.uploaded_photo = None
+                    # Очищаем photo_url
+                    st.session_state.problem_data["photo_url"] = ""
+                    st.rerun()
         
         # Проверка на готовность к отправке
         required_fields = ['equipment_type', 'device_number', 'description', 'incident_date']
@@ -376,7 +369,7 @@ def main():
                         st.session_state.chat_history = []
                         st.session_state.problem_data = {}
                         st.session_state.show_summary = False
-                        st.session_state.uploaded_photos = []
+                        st.session_state.uploaded_photo = None
                         st.session_state.message_counter = 0
                         st.rerun()
             
