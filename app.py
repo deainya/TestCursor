@@ -173,9 +173,9 @@ def display_problem_summary(problem_data):
             summary_data.append(f"**Фото:** {', '.join(photo_links)}")
     
     if summary_data:
-        # Используем st.markdown с markdown разметкой вместо HTML
-        summary_text = '\n\n'.join(summary_data)
-        st.markdown(f'<div class="problem-summary">{summary_text}</div>', unsafe_allow_html=True)
+        # Используем обычный st.markdown для корректного отображения markdown
+        for item in summary_data:
+            st.markdown(f'<div class="problem-summary">{item}</div>', unsafe_allow_html=True)
     else:
         st.info("Информация о проблеме еще не собрана")
 
@@ -334,9 +334,6 @@ def main():
                         else:
                             st.session_state.problem_data["photo_url"] = ""
                         st.rerun()
-        
-        # Отображение сводки по проблеме
-        display_problem_summary(st.session_state.problem_data)
         
         # Проверка на готовность к отправке
         required_fields = ['equipment_type', 'device_number', 'description', 'incident_date']
