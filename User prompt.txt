@@ -1,0 +1,12 @@
+Текущее сообщение пользователя:
+{{ $json.body.message }}
+
+История общения с пользователем (предыдущие сообщения):
+{{ $json.history_data }}
+
+Ранее собранные данные заявки (problem_data):
+equipment_type: {{ $json.body.problem_data.equipment_type }}
+device_number:{{ $json.body.problem_data.device_number }}
+description: {{ $json.body.problem_data.description }}
+incident_date: {{ $json.body.problem_data.incident_date }}
+photo_url: {{ $json.body.problem_data.photo_url }}
