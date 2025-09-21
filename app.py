@@ -231,8 +231,6 @@ def main():
                 st.session_state.show_summary = False
                 st.session_state.uploaded_photo = None
                 st.session_state.message_counter = 0
-                # Очищаем поле ввода
-                st.session_state.user_input = ""
                 st.rerun()
         
         # Чат интерфейс
@@ -373,8 +371,6 @@ def main():
                         st.session_state.show_summary = False
                         st.session_state.uploaded_photo = None
                         st.session_state.message_counter = 0
-                        # Очищаем поле ввода
-                        st.session_state.user_input = ""
                         st.rerun()
             
             with col2:
