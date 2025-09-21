@@ -4,6 +4,9 @@ import json
 import re
 from datetime import datetime
 import os
+import base64
+import io
+from PIL import Image
 
 # Настройка страницы для мобильной версии
 st.set_page_config(
@@ -67,6 +70,42 @@ def validate_email(email):
     """Валидация email адреса"""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
+
+def upload_to_imgbb(image_file, api_key):
+    """Загрузка изображения на ImgBB"""
+    try:
+        # Конвертируем изображение в base64
+        image_bytes = image_file.getvalue()
+        image_base64 = base64.b64encode(image_bytes).decode()
+        
+        # Отправляем на ImgBB
+        url = "https://api.imgbb.com/1/upload"
+        payload = {
+            'key': api_key,
+            'image': image_base64
+        }
+        
+        response = requests.post(url, data=payload, timeout=30)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                return {
+                    "success": True,
+                    "url": result['data']['url'],
+                    "delete_url": result['data']['delete_url']
+                }
+            else:
+                return {"success": False, "error": result.get('error', {}).get('message', 'Неизвестная ошибка')}
+        else:
+            return {"success": False, "error": f"Ошибка сервера: {response.status_code}"}
+            
+    except requests.exceptions.Timeout:
+        return {"success": False, "error": "Таймаут соединения с ImgBB"}
+    except requests.exceptions.ConnectionError:
+        return {"success": False, "error": "Ошибка подключения к ImgBB"}
+    except Exception as e:
+        return {"success": False, "error": f"Неожиданная ошибка: {str(e)}"}
 
 def send_to_n8n(message, chat_history, problem_data):
     """Отправка данных в n8n"""
@@ -139,6 +178,8 @@ def main():
         st.session_state.problem_data = {}
     if 'show_summary' not in st.session_state:
         st.session_state.show_summary = False
+    if 'uploaded_photos' not in st.session_state:
+        st.session_state.uploaded_photos = []
     
     # Ввод email
     if not st.session_state.email:
@@ -162,6 +203,7 @@ def main():
                 st.session_state.chat_history = []
                 st.session_state.problem_data = {}
                 st.session_state.show_summary = False
+                st.session_state.uploaded_photos = []
                 st.rerun()
         
         # Чат интерфейс
@@ -173,6 +215,74 @@ def main():
         
         # Отображение сводки по проблеме
         display_problem_summary(st.session_state.problem_data)
+        
+        # Загрузка изображений
+        st.markdown("### 📸 Загрузка изображений")
+        
+        # Получаем API ключ ImgBB из переменных окружения
+        imgbb_api_key = os.getenv('IMGBB_API_KEY')
+        
+        if imgbb_api_key:
+            uploaded_file = st.file_uploader(
+                "Выберите изображение для загрузки:",
+                type=['png', 'jpg', 'jpeg'],
+                help="Поддерживаемые форматы: PNG, JPG, JPEG",
+                key="image_uploader"
+            )
+            
+            if uploaded_file is not None:
+                # Показываем превью изображения
+                image = Image.open(uploaded_file)
+                st.image(image, caption="Предварительный просмотр", use_column_width=True)
+                
+                if st.button("📤 Загрузить изображение", type="primary"):
+                    with st.spinner("Загрузка изображения на ImgBB..."):
+                        result = upload_to_imgbb(uploaded_file, imgbb_api_key)
+                    
+                    if result["success"]:
+                        # Сохраняем URL в состоянии
+                        photo_info = {
+                            "url": result["url"],
+                            "delete_url": result["delete_url"],
+                            "filename": uploaded_file.name,
+                            "upload_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        }
+                        st.session_state.uploaded_photos.append(photo_info)
+                        
+                        # Обновляем problem_data с URL фото
+                        if st.session_state.uploaded_photos:
+                            photo_urls = [photo["url"] for photo in st.session_state.uploaded_photos]
+                            st.session_state.problem_data["photo_url"] = ", ".join(photo_urls)
+                        
+                        st.success(f"✅ Изображение успешно загружено!")
+                        st.info(f"🔗 URL: {result['url']}")
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Ошибка загрузки: {result['error']}")
+        else:
+            st.warning("⚠️ IMGBB_API_KEY не настроен. Загрузка изображений недоступна.")
+        
+        # Отображение загруженных фото
+        if st.session_state.uploaded_photos:
+            st.markdown("#### 📷 Загруженные изображения:")
+            for i, photo in enumerate(st.session_state.uploaded_photos):
+                col1, col2, col3 = st.columns([3, 1, 1])
+                with col1:
+                    st.write(f"**{photo['filename']}**")
+                    st.write(f"🕒 {photo['upload_time']}")
+                    st.write(f"🔗 [Открыть изображение]({photo['url']})")
+                with col2:
+                    st.image(photo['url'], width=100)
+                with col3:
+                    if st.button("🗑️", key=f"delete_{i}", help="Удалить изображение"):
+                        st.session_state.uploaded_photos.pop(i)
+                        # Обновляем problem_data
+                        if st.session_state.uploaded_photos:
+                            photo_urls = [photo["url"] for photo in st.session_state.uploaded_photos]
+                            st.session_state.problem_data["photo_url"] = ", ".join(photo_urls)
+                        else:
+                            st.session_state.problem_data["photo_url"] = ""
+                        st.rerun()
         
         # Проверка на готовность к отправке
         required_fields = ['equipment_type', 'device_number', 'description', 'incident_date']
@@ -245,6 +355,7 @@ def main():
                         st.session_state.chat_history = []
                         st.session_state.problem_data = {}
                         st.session_state.show_summary = False
+                        st.session_state.uploaded_photos = []
                         st.rerun()
             
             with col2:
