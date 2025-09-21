@@ -10,7 +10,7 @@ from PIL import Image
 
 # Настройка страницы для мобильной версии
 st.set_page_config(
-    page_title="Запрос на обслуживание",
+    page_title="Обслуживание + IMG",
     page_icon="🔧",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -231,10 +231,6 @@ def main():
             )
             
             if uploaded_file is not None:
-                # Показываем превью изображения
-                image = Image.open(uploaded_file)
-                st.image(image, caption="Предварительный просмотр", use_column_width=True)
-                
                 if st.button("📤 Загрузить изображение", type="primary"):
                     with st.spinner("Загрузка изображения на ImgBB..."):
                         result = upload_to_imgbb(uploaded_file, imgbb_api_key)
