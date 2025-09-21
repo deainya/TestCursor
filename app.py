@@ -188,6 +188,8 @@ def main():
         st.session_state.show_summary = False
     if 'uploaded_photos' not in st.session_state:
         st.session_state.uploaded_photos = []
+    if 'message_counter' not in st.session_state:
+        st.session_state.message_counter = 0
     
     # Ввод email
     if not st.session_state.email:
@@ -212,6 +214,7 @@ def main():
                 st.session_state.problem_data = {}
                 st.session_state.show_summary = False
                 st.session_state.uploaded_photos = []
+                st.session_state.message_counter = 0
                 st.rerun()
         
         # Чат интерфейс
@@ -223,7 +226,7 @@ def main():
         
         # Форма ввода сообщения
         if not st.session_state.show_summary:
-            user_input = st.text_input("Введите ваше сообщение:", placeholder="Опишите проблему...", key="user_input")
+            user_input = st.text_input("Введите ваше сообщение:", placeholder="Опишите проблему...", key=f"user_input_{st.session_state.message_counter}")
             
             if st.button("Отправить", type="primary") and user_input:
                 # Добавляем сообщение пользователя в историю
@@ -254,8 +257,8 @@ def main():
                             "is_user": False
                         })
                 
-                # Очищаем поле ввода
-                st.session_state.user_input = ""
+                # Увеличиваем счетчик для очистки поля ввода
+                st.session_state.message_counter += 1
                 st.rerun()
 
         # Загрузка изображений
@@ -362,6 +365,7 @@ def main():
                         st.session_state.problem_data = {}
                         st.session_state.show_summary = False
                         st.session_state.uploaded_photos = []
+                        st.session_state.message_counter = 0
                         st.rerun()
             
             with col2:
